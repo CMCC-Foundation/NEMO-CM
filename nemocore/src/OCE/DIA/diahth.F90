@@ -31,9 +31,12 @@ MODULE diahth
    
    ! note: following variables should move to local variables once iom_put is always used 
    REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) ::   hth    !: depth of the max vertical temperature gradient [m]
+   REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) ::   hd14   !: depth of 14 C isotherm                         [m]
+   REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) ::   hd17   !: depth of 17 C isotherm                         [m]
    REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) ::   hd20   !: depth of 20 C isotherm                         [m]
    REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) ::   hd26   !: depth of 26 C isotherm                         [m]
    REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) ::   hd28   !: depth of 28 C isotherm                         [m]
+   REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) ::   htc04   !: heat content of first 40 m                    [W]
    REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) ::   htc3   !: heat content of first 300 m                    [W]
    REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) ::   htc7   !: heat content of first 700 m                    [W]
    REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) ::   htc20  !: heat content of first 2000 m                   [W]
@@ -54,8 +57,8 @@ CONTAINS
       INTEGER :: dia_hth_alloc
       !!---------------------------------------------------------------------
       !
-      ALLOCATE( hth(jpi,jpj), hd20(jpi,jpj), hd26(jpi,jpj), hd28(jpi,jpj), &
-         &      htc3(jpi,jpj), htc7(jpi,jpj), htc20(jpi,jpj), STAT=dia_hth_alloc )
+      ALLOCATE( hth(jpi,jpj), hd14(jpi,jpj), hd17(jpi,jpj), hd20(jpi,jpj), hd26(jpi,jpj), hd28(jpi,jpj), &
+         &      htc04(jpi,jpj), htc3(jpi,jpj), htc7(jpi,jpj), htc20(jpi,jpj), STAT=dia_hth_alloc )
       !
       CALL mpp_sum ( 'diahth', dia_hth_alloc )
       IF(dia_hth_alloc /= 0)   CALL ctl_stop( 'STOP', 'dia_hth_alloc: failed to allocate arrays.' )
@@ -109,6 +112,7 @@ CONTAINS
          !
          l_hth = iom_use( 'mlddzt'   ) .OR. iom_use( 'mldr0_3'  ) .OR. iom_use( 'mldr0_1'  )    .OR.  & 
             &    iom_use( 'mld_dt02' ) .OR. iom_use( 'topthdep' ) .OR. iom_use( 'mldr10_3' )    .OR.  &    
+            &    iom_use( '14d'      ) .OR. iom_use( '17d'      ) .OR.  &    
             &    iom_use( '20d'      ) .OR. iom_use( '26d'      ) .OR. iom_use( '28d'      )    .OR.  &    
             &    iom_use( 'hc300'    ) .OR. iom_use( 'hc700'    ) .OR. iom_use( 'hc2000'   )    .OR.  &    
             &    iom_use( 'pycndep'  ) .OR. iom_use( 'tinv'     ) .OR. iom_use( 'depti'    )
@@ -242,8 +246,20 @@ CONTAINS
          ENDIF
  
          ! ------------------------------- !
-         !  Depth of 20C/26C/28C isotherm  !
+         !  Depth of 14C/17C/20C/26C/28C isotherm  !
          ! ------------------------------- !
+         IF( iom_use ('14d') ) THEN  ! depth of the 14 isotherm
+            ztem2 = 14.
+            CALL dia_hth_dep( Kmm, ztem2, hd14 )  
+            CALL iom_put( '14d', hd14 )    
+         ENDIF
+         !
+         IF( iom_use ('17d') ) THEN  ! depth of the 17 isotherm
+            ztem2 = 17.
+            CALL dia_hth_dep( Kmm, ztem2, hd17 )  
+            CALL iom_put( '17d', hd17 )    
+         ENDIF
+         !
          IF( iom_use ('20d') ) THEN  ! depth of the 20 isotherm
             ztem2 = 20.
             CALL dia_hth_dep( Kmm, ztem2, hd20 )  
@@ -262,6 +278,15 @@ CONTAINS
             CALL iom_put( '28d', hd28 )    
          ENDIF
         
+        
+         ! ----------------------------- !
+         !  Heat content of first 40 m  !
+         ! ----------------------------- !
+         IF( iom_use ('hc40') ) THEN  
+            zzdep = 40.
+            CALL  dia_hth_htc( Kmm, zzdep, ts(:,:,:,jp_tem,Kmm), htc04 )
+            CALL iom_put( 'hc40', rho0_rcp * htc04 )  ! vertically integrated heat content (J/m2)
+         ENDIF
          ! ----------------------------- !
          !  Heat content of first 300 m  !
          ! ----------------------------- !

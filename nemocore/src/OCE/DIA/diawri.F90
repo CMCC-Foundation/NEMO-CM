@@ -861,9 +861,17 @@ CONTAINS
 #if defined key_diahth
          CALL histdef( nid_T, "sothedep", "Thermocline Depth"                  , "m"      ,   & ! hth
             &          jpi, jpj, nh_T, 1  , 1, 1  , -99 , 32, clop, zsto, zout )
+         CALL histdef( nid_T, "so14chgt", "Depth of 14C isotherm"              , "m"      ,   & ! hd14
+            &          jpi, jpj, nh_T, 1  , 1, 1  , -99 , 32, clop, zsto, zout )
+         CALL histdef( nid_T, "so17chgt", "Depth of 17C isotherm"              , "m"      ,   & ! hd17
+            &          jpi, jpj, nh_T, 1  , 1, 1  , -99 , 32, clop, zsto, zout )
          CALL histdef( nid_T, "so20chgt", "Depth of 20C isotherm"              , "m"      ,   & ! hd20
             &          jpi, jpj, nh_T, 1  , 1, 1  , -99 , 32, clop, zsto, zout )
+         CALL histdef( nid_T, "so26chgt", "Depth of 26C isotherm"              , "m"      ,   & ! hd26
+            &          jpi, jpj, nh_T, 1  , 1, 1  , -99 , 32, clop, zsto, zout )
          CALL histdef( nid_T, "so28chgt", "Depth of 28C isotherm"              , "m"      ,   & ! hd28
+            &          jpi, jpj, nh_T, 1  , 1, 1  , -99 , 32, clop, zsto, zout )
+         CALL histdef( nid_T, "sohtc040", "Heat content 40 m"                 , "J/m2"   ,   & ! htc04
             &          jpi, jpj, nh_T, 1  , 1, 1  , -99 , 32, clop, zsto, zout )
          CALL histdef( nid_T, "sohtc300", "Heat content 300 m"                 , "J/m2"   ,   & ! htc3
             &          jpi, jpj, nh_T, 1  , 1, 1  , -99 , 32, clop, zsto, zout )
