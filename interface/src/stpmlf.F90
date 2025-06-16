@@ -354,9 +354,6 @@ CONTAINS
                             CALL tra_ldf    ( kstp, Nbb, Nnn, ts, Nrhs )  ! lateral mixing
 
                             CALL tra_zdf    ( kstp, Nbb, Nnn, Nrhs, ts, Naa  )  ! vertical mixing and after tracer fields
-#if defined CCSMCOUPLED
-         IF( lk_cesm   )    CALL ice_formation ( kstp, Naa )  ! freezing/melting potential
-#endif
          IF( ln_zdfnpc  )   CALL tra_npc    ( kstp,      Nnn, Nrhs, ts, Naa  )  ! update after fields by non-penetrative convection
       END DO
       IF( ln_tile ) CALL dom_tile_stop
@@ -386,6 +383,12 @@ CONTAINS
                          r3u(:,:,Nnn) = r3u_f(:,:)
                          r3v(:,:,Nnn) = r3v_f(:,:)
       ENDIF
+#if defined CCSMCOUPLED
+      IF( lk_cesm   ) THEN
+                         CALL ice_formation ( kstp, Nnn )  ! freezing/melting potential
+                         CALL ice_formation ( kstp, Naa )  ! freezing/melting potential
+      END IF
+#endif
       !
       ! Swap time levels
       Nrhs = Nbb
@@ -394,7 +397,7 @@ CONTAINS
       Naa = Nrhs
       !
 #if defined CCSMCOUPLED
-      IF( lk_cesm          )   CALL ice_flx_to_coupler( kstp, Nnn )
+      IF( lk_cesm    )   CALL ice_flx_to_coupler( kstp, Nnn )
 #endif
       !
       IF( ln_diahsb  )   CALL dia_hsb       ( kstp, Nbb, Nnn )  ! - ML - global conservation diagnostics

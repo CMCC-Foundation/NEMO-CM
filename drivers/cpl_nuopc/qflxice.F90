@@ -53,12 +53,12 @@ module qflxice
       lfw_as_salt_flx = .false.   ! treat fw flux as virtual salt flux
                                   ! even with var.thickness sfc layer
 
-   integer, parameter, public :: &
-      nn_nits = 2         ! ice formation/melting computed starting at nn_nits-1
-                          ! time steps before the coupling time step
-                          ! 1 ==> computed at the coupling time step only
-                          ! 2 ==> comp. at the coup. ts and 1 ts before
-                          ! n ==> comp. at the coup. ts and n-1 ts before
+!   integer, parameter, public :: &
+!      nn_nits = 2         ! ice formation/melting computed starting at nn_nits-1
+!                          ! time steps before the coupling time step
+!                          ! 1 ==> computed at the coupling time step only
+!                          ! 2 ==> comp. at the coup. ts and 1 ts before
+!                          ! n ==> comp. at the coup. ts and n-1 ts before
 
    real (wp), dimension(:,:), allocatable, public :: &
       QFLUX               ! internal ocn heat flux due to ice formation
@@ -88,9 +88,6 @@ module qflxice
 
 !   real (wp) ::          &
 !      hflux_factor
-
-   integer :: &
-      nn_itsc             ! ice formation/melting time steps counter
 
    ! FIXME: should be a namelist variable !
    integer :: &
@@ -147,7 +144,7 @@ module qflxice
    kmxice           = 1
    lactive_ice      = .true.
 
-   liceform = .true.
+   liceform     = .true.
 
    lice_form_ts = .false.
    lice_cpl_ts  = .false.
@@ -160,7 +157,6 @@ module qflxice
    endif
 
    tlast_ice = 0.0_wp
-   nn_itsc = 0
 
    !***
    !*** allocate and initialize ice flux arrays
@@ -230,7 +226,7 @@ module qflxice
 !BOP
 ! !IROUTINE:
 ! !INTERFACE:
-   subroutine ice_formation( kt, Kaa )
+   subroutine ice_formation( kt, Ktt )
 
 ! !DESCRIPTION:
 !  This subroutine computes ocean heat flux to the sea-ice. it forms
@@ -244,8 +240,8 @@ module qflxice
    implicit none
  
 ! !INPUT/OUTPUT PARAMETERS:
-   integer, intent(in), optional :: kt
-   integer, intent(in) :: Kaa
+   integer, intent(in), optional :: kt   ! Time step
+   integer, intent(in) :: Ktt            ! Time level
 !EOP
 !BOC
 
@@ -310,8 +306,8 @@ module qflxice
 !     !*** (potice>0) or melting (potice<0) in layer k
 !     !***
 !
-       call tfreez(TFRZ(:,:),ts(:,:,k,jp_sal,Kaa))
-       POTICE(:,:) = (TFRZ(:,:) - ts(:,:,k,jp_tem,Kaa))*e3t(:,:,k,Kaa)*tmask(:,:,k)
+       call tfreez(TFRZ(:,:),ts(:,:,k,jp_sal,Ktt))
+       POTICE(:,:) = (TFRZ(:,:) - ts(:,:,k,jp_tem,Ktt))*e3t(:,:,k,Ktt)*tmask(:,:,k)
 !
 !     !***
 !     !*** if potice < 0, use the heat to melt any ice
@@ -326,7 +322,7 @@ module qflxice
 !     !***
 !
        where (POTICE(:,:)>0.0_dp)
-         ts(:,:,k,jp_tem,Kaa) = TFRZ(:,:)
+         ts(:,:,k,jp_tem,Ktt) = TFRZ(:,:)
        endwhere
 !
 !       if (lk_vvl .and. .not. lfw_as_salt_flx) then
@@ -357,19 +353,19 @@ module qflxice
 
      k = 1
      
-     call tfreez(TFRZ(:,:),ts(:,:,k,jp_sal,Kaa))
+     call tfreez(TFRZ(:,:),ts(:,:,k,jp_sal,Ktt))
 
-     WORK1(:,:) = e3t(:,:,k,Kaa)
+     WORK1(:,:) = e3t(:,:,k,Ktt)
 
 !     if (.not. lk_vvl)  &
 !       WORK1 = WORK1 + ssha(:,:)
 
-     POTICE(:,:) = (TFRZ(:,:) - ts(:,:,k,jp_tem,Kaa))*WORK1(:,:)*tmask(:,:,k)
+     POTICE(:,:) = (TFRZ(:,:) - ts(:,:,k,jp_tem,Ktt))*WORK1(:,:)*tmask(:,:,k)
 
      POTICE(:,:) = max(POTICE(:,:), QICE(:,:))
 
      where (POTICE(:,:)>0.0_dp)
-       ts(:,:,k,jp_tem,Kaa) = TFRZ(:,:)
+       ts(:,:,k,jp_tem,Ktt) = TFRZ(:,:)
      endwhere
 
 !     if (lk_vvl .and. .not. lfw_as_salt_flx) then
@@ -429,8 +425,6 @@ module qflxice
 !!!     SALT_FREEZE(:,:) = SALT_FREEZE(:,:) + WORK2(:,:)
 !!
 
-     nn_itsc = nn_itsc + 1
-
    endif ! time to do ice
 
    if (lrst_oce) then
@@ -449,7 +443,7 @@ module qflxice
 
 !***********************************************************************
 
-   subroutine ice_flx_to_coupler( kt, Knn )
+   subroutine ice_flx_to_coupler( kt, Ktt )
 
 !-----------------------------------------------------------------------
 !
@@ -459,8 +453,8 @@ module qflxice
 !
 !-----------------------------------------------------------------------
 
-   integer, intent(in) :: kt
-   integer, intent(in) :: Knn
+   integer, intent(in) :: kt   ! Time step
+   integer, intent(in) :: Ktt  ! Time level
 
 !-----------------------------------------------------------------------
 !
@@ -483,10 +477,10 @@ module qflxice
 !
 !-----------------------------------------------------------------------
 
-   call tfreez(TFRZ(:,:),ts(:,:,1,jp_sal,Knn))
+   call tfreez(TFRZ(:,:),ts(:,:,1,jp_sal,Ktt))
 !   call tfreez(TFRZ(:,:),sn(:,:,1))
 
-   WORK1(:,:) = e3t(:,:,1,Knn)
+   WORK1(:,:) = e3t(:,:,1,Ktt)
 
 !   if ( .not. lk_vvl ) &
 !     WORK1 = WORK1 + sshn(:,:)
@@ -498,18 +492,14 @@ module qflxice
 !-----------------------------------------------------------------------
 
    WORK2(:,:) = 0.0_wp
-   WORK2(:,:) = (TFRZ(:,:) - ts(:,:,1,jp_tem,Knn)) * WORK1(:,:) * tmask(:,:,1)
-!   WORK2(:,:) = (TFRZ(:,:) - tn(:,:,1)) * WORK1(:,:) * tmask(:,:,1)
+   WORK2(:,:) = (TFRZ(:,:) - ts(:,:,1,jp_tem,Ktt)) * WORK1(:,:) * tmask(:,:,1)
 
 !-----------------------------------------------------------------------
 !
 !  adjust ice formation amount
 !
 !-----------------------------------------------------------------------
-
-!   AQICE(:,:) = AQICE(:,:)/REAL(nn_nits,wp)
-   AQICE(:,:) = AQICE(:,:)/REAL(nn_itsc,wp)
-!   AQICE(:,:) = AQICE(:,:)*0.5_wp
+   AQICE(:,:) = AQICE(:,:)*0.5_wp  ! Adjust for leap-frog time stepping
 
 !-----------------------------------------------------------------------
 !
@@ -522,6 +512,7 @@ module qflxice
 !     SFLUX(:,:) = SALT_FREEZE(:,:)*rho0*WORK1(:,:)*tmask(:,:,1)/tlast_ice
 !   endif
 
+   WORK1(:,:) = 0.0_wp
    where ( AQICE(:,:) < 0.0_wp ) 
      WORK1(:,:) = -AQICE(:,:)
    elsewhere
@@ -536,7 +527,6 @@ module qflxice
 
    lice_form_ts = .false.
    lice_cpl_ts  = .false.
-   nn_itsc = 0
 
    endif
 

@@ -881,16 +881,16 @@ contains
 
     if (MOD(ocn_cpl_dt, INT(rn_Dt)) /= 0) then
        write(numout,*)' ocn_cpl_dt= ',ocn_cpl_dt, &
-                      '        rdt= ',INT(rn_Dt)
+                      '      rn_dt= ',INT(rn_Dt)
        if (lk_mpp) call mppsync       ! sync PEs
-       call shr_sys_abort('ocn_comp_nuopc: DataInitialize: ocn_cpl_dt must be an exact multiple of rdt')
+       call shr_sys_abort('ocn_comp_nuopc: DataInitialize: ocn_cpl_dt must be an exact multiple of rn_dt')
     end if
     ! # of model times step in one coupling time step
     nn_ncpl = ocn_cpl_dt/INT(rn_Dt)
     if (nn_ncpl /= nn_fsbc) then
        write(numout,*)' nn_ncpl= ',nn_ncpl, '  nn_fsbc= ', nn_fsbc
        if (lk_mpp) call mppsync       ! sync PEs
-       call shr_sys_abort('ocn_comp_nuopc: DataInitialize: nn_ncpl_dt must be equal to nn_fsbc!')
+       call shr_sys_abort('ocn_comp_nuopc: DataInitialize: nn_ncpl must be equal to nn_fsbc!')
     end if
     if (ldiag_cpl .AND. lwp) then
       write(numout,*) 'ocn_comp_nuopc: DataInitialize: coupling time step (sec)',  &
@@ -1601,14 +1601,15 @@ nproc = narea - 1
 
    logical :: lice_form
 
-   integer :: n
+   !integer :: n
 
-   lice_form = .false.
+   !lice_form = .false.
+   lice_form = .true.
 
-   do n=1,min(nn_nits,nn_ncpl)
-      lice_form = lice_form .OR. (MOD(kt-nit000+n, nn_ncpl)==0)
-      if (lice_form) exit
-   end do
+   !do n=1,min(nn_nits,nn_ncpl)
+   !   lice_form = lice_form .OR. (MOD(kt-nit000+n, nn_ncpl)==0)
+   !   if (lice_form) exit
+   !end do
 
  end function lice_form
 
@@ -2255,7 +2256,7 @@ nproc = narea - 1
              end if
           enddo
        enddo
-       call shr_sys_abort('(set_surface_forcing) ERROR: ioff_x2o is negative')
+       call shr_sys_abort('(set_surface_forcing) ERROR: roff_x2o is negative')
     endif
 
     !-----------------------------------------------------------------------
@@ -2659,7 +2660,6 @@ nproc = narea - 1
     tlast_ice = c0
     AQICE     = c0
     QFLUX     = c0
-!    QICE      = c0
 
     !-----------------------------------------------------------------------
     ! pack co2 flux, if requested (kg CO2/m^2/s)
@@ -2675,7 +2675,7 @@ nproc = narea - 1
        do j=Njs0,Nje0
          do i=Nis0,Nie0
             n = n + 1
-            dataptr1(n) = (sbuff_sum_co2(i,j)/tlast_coupled) * mod2med_areacor(n) 
+            dataptr1(n) = (sbuff_sum_co2(i,j)*tmask(i,j,1)/tlast_coupled) * mod2med_areacor(n) 
          enddo
       enddo
     endif
@@ -3063,8 +3063,6 @@ nproc = narea - 1
        !end if
        !sbuff_sum_s_depth(:,:,:) = c0
     end if
-
-    work = c0
 
     !-----------------------------------------------------------------------
     ! update time since last coupling
